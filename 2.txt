@@ -1,0 +1,247 @@
+create schema if not exists learning_syntax_schema;
+set search_path to learning_syntax_schema, public;
+
+drop function if exists lab24();
+create function lab24() returns void as 
+$$
+	declare
+		s char(30);
+		d numeric;
+	begin
+		s := 'asdf';
+		d := 10.3;
+		raise notice '% %', s, d;
+	end
+$$ language plpgsql;
+
+drop function if exists lab27();
+create function lab27() returns void as 
+$$
+	declare
+		ans int;
+	begin
+		select sum(experience) into ans from teacher;
+		raise notice '%', ans;
+	end
+$$ language plpgsql;
+
+drop function if exists lab214();
+create function lab214() returns void as 
+$$
+	declare
+		rec record;
+	begin
+		create temporary table tmp (id serial, title text);
+		
+		insert into tmp (select id, title from course);
+		
+		for rec in (select id, title from tmp)
+		loop
+			raise notice '% %', rec.id, rec.title;
+		end loop;
+		
+		drop table tmp;
+	end
+$$ language plpgsql;
+
+drop function if exists lab217();
+create function lab217() returns void as 
+$$
+	declare
+		i1 real;
+		o1 int;
+		
+		i2 char(15);
+		o2 date;
+		
+		i3 smallint;
+		o3 boolean;
+	begin
+		i1 := 4.4;
+		o1 := cast(i1 as int);
+		raise notice '%', o1;
+		
+		i2 := '15.01.1971';
+		o2 := cast(i2 as date);
+		raise notice '%', o2;
+		
+		i3 := 1;
+		o3 := i3 > 0;
+		raise notice '%', o3;
+	end
+$$ language plpgsql;
+
+drop function if exists lab218();
+create function lab218() returns void as 
+$$
+	declare
+		i1 int;
+		o1 real;
+		
+		i2 date;
+		o2 char(15);
+		
+		i3 boolean;
+		o3 smallint;
+	begin
+		i1 := 4;
+		o1 := cast(i1 as real);
+		raise notice '%', o1;
+		
+		i2 := '15.01.1971';
+		o2 := cast(i2 as char(15));
+		raise notice '%', o2;
+		
+		i3 := true;
+		o3 := cast(i3 as smallint);
+		raise notice '%', o3;
+	end
+$$ language plpgsql;
+
+drop function if exists lab226();
+create function lab226() returns void as 
+$$
+	declare
+		tables cursor for select t.surname, c.title from teacher t, course c, teacher_course_membership tc where
+													 tc.teacher_id = t.id and tc.course_id = c.id;
+	begin
+		
+	end
+$$ language plpgsql;
+
+drop function if exists lab229();
+create function lab229() returns void as 
+$$
+	declare
+		tables cursor for select t.surname, c.title from teacher t, course c, teacher_course_membership tc where
+													 tc.teacher_code = t.code and tc.course_id = c.id;
+		cnt int;
+		rec record;
+	begin
+		open tables;
+		move forward 4 from tables;
+		fetch tables into rec;
+		raise notice '% %', rec.surname, rec.title;
+		close tables;
+	end
+$$ language plpgsql;
+
+drop function if exists lab232();
+create function lab232() returns void as 
+$$
+	declare
+		s text;
+		count_e int;
+		count_o int;
+	begin
+		s := 'ооеа';
+		count_e = length(s) - length(replace(s, 'е', ''));
+		count_o = length(s) - length(replace(s, 'о', ''));
+		raise notice '% %', count_e * 100. / length(s), count_o * 100. / length(s);
+		raise notice '% %', count_e * 100. / (count_e + count_o), count_o * 100. / (count_e + count_o);
+	end
+$$ language plpgsql;
+
+drop function if exists lab236();
+create function lab236() returns void as 
+$$
+	declare
+		s text;
+		cnt int;
+		pos int;
+		ans text;
+	begin
+		s := 'а б в г д е ё ж з и к л м';
+		ans := '';
+		cnt := 0;
+		while true
+		loop
+			cnt := cnt + 1;
+			pos := position(' ' in s);
+			
+			if pos = 0 then 
+				ans := ans || s;
+				exit;
+			end if;
+			
+			if cnt not in (2, 4, 6, 8) then
+				ans := ans || substr(s, 1, pos);
+			end if;
+			
+			s = substr(s, pos + 1);
+		end loop;
+		raise notice '%', ans;
+	end
+$$ language plpgsql;
+
+drop function if exists lab239();
+create function lab239() returns void as 
+$$
+	declare
+		s text;
+		t text;
+	begin
+		s := 'ооеа';
+		t = replace(replace(s, 'о', 'ББ'), 'е', 'ВВ');
+		raise notice '%', t;
+	end
+$$ language plpgsql;
+
+drop function if exists lab241();
+create function lab241() returns void as 
+$$
+	declare
+		v0 numeric;
+		t numeric;
+		r numeric;
+		ans numeric;
+	begin
+		v0 := 2;
+		t := 10;
+		r := 18;
+		ans := v0 * exp(sqrt(r * t / 45));
+		raise notice '%', ans;
+	end
+$$ language plpgsql;
+
+drop function if exists lab247();
+create function lab247() returns void as 
+$$
+	declare
+		x numeric;
+		a numeric;
+		b numeric;
+		c numeric;
+		y numeric;
+	begin
+		x := 2;
+		a := 2.71828;
+		b := 5;
+		c := -4;
+		y := power(x, 4) * ln(a) - b * c;
+		raise notice '%', y;
+	end
+$$ language plpgsql;
+
+
+drop function if exists lab253();
+create function lab253() returns void as 
+$$
+	declare
+		rec course%rowtype;
+		cnt int;
+		courserec record;
+	begin
+		rec.id := 11;
+		rec.title := 'abracadabra';
+		insert into course (id, title) values (rec.id, rec.title);
+		for courserec in select id, title from course 
+		loop
+			raise notice '% %', courserec.id, courserec.title;
+		end loop;
+		delete from course where title = 'abracadabra';
+	end
+$$ language plpgsql;
+
+
+set search_path to "$user", public;

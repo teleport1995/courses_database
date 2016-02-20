@@ -1,0 +1,121 @@
+insert into class (num, speciality, department, students_count) values
+(11, 'ИиТП', 'о', 31),
+(12, 'ИиТП', 'о', 28),
+(21, 'ПОИТ', 'о', 25),
+(31, 'ВМСиС', 'о', 30),
+(32, 'ВМСиС', 'з', 16);
+
+insert into teacher (code, surname, name, patronymic, phone, experience) values
+(1, 'Теслюк', 'Владимир', 'Николаевич', '+375 29 895 95 23', 10),
+(2, 'Анисимов', 'Владимир', 'Яковлевич', '+375 44 915 94 82', 20),
+(3, 'Бугара', 'Денис', 'Андреевич', '+375 33 198 94 66', 1),
+(4, 'Костюкова', 'Ольга', 'Ивановна', '+375 29 598 33 29', 15),
+(5, 'Саттарова', 'Полина', 'Сергеевна', '+375 29 321 23 46', 1);
+
+insert into course (title) values
+('МА'),
+('ГиА'),
+('МДиСУБД'),
+('МОиУ'),
+('МЧА');
+
+insert into teacher_course_membership (teacher_code, course_id) values
+((select code from teacher where surname = 'Теслюк'), (select id from course where title = 'МА')),
+((select code from teacher where surname = 'Теслюк'), (select id from course where title = 'ГиА')),
+((select code from teacher where surname = 'Теслюк'), (select id from course where title = 'МЧА')),
+((select code from teacher where surname = 'Анисимов'), (select id from course where title = 'МА')),
+((select code from teacher where surname = 'Анисимов'), (select id from course where title = 'ГиА')),
+((select code from teacher where surname = 'Бугара'), (select id from course where title = 'МДиСУБД')),
+((select code from teacher where surname = 'Костюкова'), (select id from course where title = 'МОиУ')),
+((select code from teacher where surname = 'Саттарова'), (select id from course where title = 'МДиСУБД')),
+((select code from teacher where surname = 'Саттарова'), (select id from course where title = 'МОиУ'));
+
+insert into employment (type) values
+('лк'),
+('пз'),
+('лр');
+
+insert into tariff (course_id, employment_type, price) values
+((select id from course where title = 'МА'), 'лк', 30),
+((select id from course where title = 'МА'), 'пз', 20),
+((select id from course where title = 'ГиА'), 'лк', 30),
+((select id from course where title = 'ГиА'), 'пз', 20),
+((select id from course where title = 'МДиСУБД'), 'лк', 25),
+((select id from course where title = 'МДиСУБД'), 'лр', 15),
+((select id from course where title = 'МОиУ'), 'лк', 30),
+((select id from course where title = 'МОиУ'), 'лр', 15),
+((select id from course where title = 'МЧА'), 'лк', 25),
+((select id from course where title = 'МЧА'), 'лр', 10);
+
+insert into load (teacher_course_membership_id, class_num, tariff_id, hours_count) values
+(
+	(select id from teacher_course_membership where teacher_code in (select code from teacher where surname = 'Теслюк') and
+												 course_id in (select id from course where title = 'ГиА')),
+	11, 
+	(select id from tariff where course_id in (select id from course where title = 'ГиА') and employment_type = 'лк'), 
+	30
+),
+(
+	(select id from teacher_course_membership where teacher_code in (select code from teacher where surname = 'Теслюк') and
+												 course_id in (select id from course where title = 'МА')),
+	12, 
+	(select id from tariff where course_id in (select id from course where title = 'МА') and employment_type = 'лк'), 
+	25
+),
+(
+	(select id from teacher_course_membership where teacher_code in (select code from teacher where surname = 'Теслюк') and
+												 course_id in (select id from course where title = 'ГиА')),
+	21, 
+	(select id from tariff where course_id in (select id from course where title = 'ГиА') and employment_type = 'пз'), 
+	15
+),
+(
+	(select id from teacher_course_membership where teacher_code in (select code from teacher where surname = 'Анисимов') and
+												 course_id in (select id from course where title = 'МА')),
+	31, 
+	(select id from tariff where course_id in (select id from course where title = 'МА') and employment_type = 'лк'), 
+	35
+),
+(
+	(select id from teacher_course_membership where teacher_code in (select code from teacher where surname = 'Анисимов') and
+												 course_id in (select id from course where title = 'ГиА')),
+	32, 
+	(select id from tariff where course_id in (select id from course where title = 'ГиА') and employment_type = 'пз'), 
+	25
+),
+(
+	(select id from teacher_course_membership where teacher_code in (select code from teacher where surname = 'Бугара') and
+												 course_id in (select id from course where title = 'МДиСУБД')),
+	11, 
+	(select id from tariff where course_id in (select id from course where title = 'МДиСУБД') and employment_type = 'лр'), 
+	40
+),
+(
+	(select id from teacher_course_membership where teacher_code in (select code from teacher where surname = 'Бугара') and
+												 course_id in (select id from course where title = 'МДиСУБД')),
+	12, 
+	(select id from tariff where course_id in (select id from course where title = 'МДиСУБД') and employment_type = 'лр'), 
+	40
+),
+(
+	(select id from teacher_course_membership where teacher_code in (select code from teacher where surname = 'Костюкова') and
+												 course_id in (select id from course where title = 'МОиУ')),
+	21, 
+	(select id from tariff where course_id in (select id from course where title = 'МОиУ') and employment_type = 'лк'), 
+	35
+),
+(
+	(select id from teacher_course_membership where teacher_code in (select code from teacher where surname = 'Саттарова') and
+												 course_id in (select id from course where title = 'МДиСУБД')),
+	32, 
+	(select id from tariff where course_id in (select id from course where title = 'МДиСУБД') and employment_type = 'лр'), 
+	20
+),
+(
+	(select id from teacher_course_membership where teacher_code in (select code from teacher where surname = 'Саттарова') and
+												 course_id in (select id from course where title = 'МОиУ')),
+	31, 
+	(select id from tariff where course_id in (select id from course where title = 'МОиУ') and employment_type = 'лр'), 
+	30
+);
+

@@ -1,0 +1,27 @@
+create schema if not exists user_exceptions_schema;
+set search_path to user_exceptions_schema, public;
+
+
+drop function if exists trigger_big_experience() cascade;
+create function trigger_big_experience() returns trigger as 
+$$
+	begin
+		begin
+			if new.experience >= 100 then
+				raise exception using errcode = 'TOO_BIG_EXPERIENCE', message = 'Experience is wrong', hint = 'Check value of experience.';
+			end if;
+			exception
+				when others then
+					raise notice '%', sqlerrm;
+					return old;	
+		end;
+		return new;
+	end;
+$$ language plpgsql;
+
+drop trigger if exists big_experience_trigger on teacher cascade;
+create trigger big_experience_trigger
+before insert on teacher for each row
+execute procedure trigger_big_experience();
+
+set search_path to "$user", public;

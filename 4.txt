@@ -1,0 +1,134 @@
+create schema if not exists user_triggers_schema;
+set search_path to user_triggers_schema, public;
+
+
+drop table if exists big_price cascade;
+create table big_price (price numeric);
+
+drop function if exists trigger_big_price_insert() cascade;
+create function trigger_big_price_insert() returns trigger as
+$$
+	begin
+		if new.price > 50 then
+			insert into user_triggers_schema.big_price (price) values (new.price);
+		end if;
+		return new;
+	end;
+$$ language plpgsql;
+
+drop trigger if exists big_price_trigger_on_tariff on tariff cascade;
+create trigger big_price_trigger_on_tariff 
+before insert on tariff for each row
+execute procedure trigger_big_price_insert(); 
+
+drop function if exists check_big_price_trigger() cascade;
+create function check_big_price_trigger() returns void as
+$$
+	declare
+		rec record;
+	begin
+		insert into tariff (course_id, employment_type, price) values
+			((select id from course where title = 'МА'), 'лр', 55),
+			((select id from course where title = 'ГиА'), 'лр', 45);
+	
+		for rec in select price from user_triggers_schema.big_price
+		loop
+			raise notice '%', rec.price;
+		end loop;
+		
+		delete from user_triggers_schema.big_price;
+		delete from tariff where price >= 45;
+	end;
+$$ language plpgsql;
+
+
+
+drop table if exists insertion_log cascade;
+create table insertion_log (table_name text, time timestamp);
+
+drop function if exists trigger_log_insert() cascade;
+create function trigger_log_insert() returns trigger as
+$$
+	begin
+		insert into user_triggers_schema.insertion_log (table_name, time) values (tg_relname, now());
+		return new;
+	end;
+$$ language plpgsql;
+
+drop trigger if exists insertion_log_trigger_on_course on course cascade;
+create trigger insertion_log_trigger_on_course 
+before insert on course for each row
+execute procedure trigger_log_insert();
+
+drop trigger if exists insertion_log_trigger_on_class on class cascade;
+create trigger insertion_log_trigger_on_class 
+before insert on class for each row
+execute procedure trigger_log_insert();
+
+drop trigger if exists insertion_log_trigger_on_teacher on teacher cascade;
+create trigger insertion_log_trigger_on_teacher 
+before insert on teacher for each row
+execute procedure trigger_log_insert();
+
+drop function if exists check_insertion_log_trigger() cascade;
+create function check_insertion_log_trigger() returns void as
+$$
+	declare
+		rec record;
+	begin
+		insert into course (title) values ('Питончик');
+		
+		insert into teacher (code, surname, name, patronymic, phone, experience) values
+			(88, 'Cоболь', 'Андрей', 'Владимирович', '+375 29 820 40 38', 2);
+		
+		insert into class (num, speciality, department, students_count) values
+			(0, 'быдлокодеры', 'о', 100500);
+		
+		for rec in select table_name, time from user_triggers_schema.insertion_log
+		loop
+			raise notice '% --- %', rec.table_name, rec.time;
+		end loop;
+		
+		delete from user_triggers_schema.insertion_log;
+		delete from class where num = 0;
+		delete from teacher where code = 88;
+		delete from course where title = 'Питончик';
+	end;
+$$ language plpgsql;
+
+
+drop event trigger if exists creation_log_trigger cascade;
+
+drop table if exists new_tables;
+create table new_tables (user_name text, time timestamp);
+
+drop function if exists trigger_log_creation() cascade;
+create function trigger_log_creation() returns event_trigger as
+$$
+	begin
+		insert into user_triggers_schema.new_tables (user_name, time) values (session_user, now());
+	end;
+$$ language plpgsql;
+
+create event trigger creation_log_trigger on ddl_command_start
+when tag in ('create table', 'create view')
+execute procedure trigger_log_creation();
+
+drop function if exists check_creation_log_trigger() cascade;
+create function check_creation_log_trigger() returns void as
+$$
+	declare
+		rec record;
+	begin
+		delete from user_triggers_schema.new_tables;
+		create table user_triggers_schema.tmp(x int);
+		for rec in select user_name, time from user_triggers_schema.new_tables
+		loop
+			raise notice '% --- %', rec.user_name, rec.time;
+		end loop;
+		drop table user_triggers_schema.tmp;
+		delete from user_triggers_schema.new_tables;
+	end;
+$$ language plpgsql;
+
+set search_path to "$user", public;

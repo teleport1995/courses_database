@@ -1,0 +1,74 @@
+create schema if not exists stored_procedures_schema;
+set search_path to stored_procedures_schema, public;
+
+
+drop function if exists experienced_teachers() cascade;
+create function experienced_teachers() returns table (surname text, experience int) as 
+$$
+	declare
+	begin
+		return query select t1.surname, t1.experience from teacher t1 where t1.experience > (select avg(t2.experience) from teacher t2);
+	end
+$$ language plpgsql;
+
+drop function if exists big_classes_with_experienced_teachers(_min_students_count int, _min_experience int) cascade;
+create function big_classes_with_experienced_teachers(_min_students_count int, _min_experience int) 
+	returns table (num int, students_count int) as 
+$$
+	declare
+	begin
+		return query select distinct c.num, c.students_count from load l, teacher_course_membership tc, teacher t, class c 
+						where tc.id = l.teacher_course_membership_id and t.code = tc.teacher_code and l.class_num = c.num and
+								c.students_count >= _min_students_count and t.experience > _min_experience;
+	end
+$$ language plpgsql;
+
+
+drop function if exists big_price_with_less_hours(_min_price numeric, _max_hours int) cascade;
+create function big_price_with_less_hours(_min_price numeric, _max_hours int) 
+	returns table (num int, surname text, title text, employment_type text, price numeric, hours_count int) as 
+$$
+	declare
+	begin
+		return query select l.class_num as num, t.surname as surname, c.title as title, 
+					e.type as employment_type, tar.price as price, l.hours_count as hours_count
+						from load l, teacher_course_membership tc, teacher t, course c, tariff tar, employment e  
+							where tc.id = l.teacher_course_membership_id and t.code = tc.teacher_code and c.id = tc.course_id and
+							l.tariff_id = tar.id and tar.employment_type = e.type and
+							tar.price > _min_price and l.hours_count < _max_hours
+								order by tar.price;
+	end
+$$ language plpgsql;
+
+drop function if exists teachers_with_digit_and_course(_digit int, _course_title text) cascade;
+create function teachers_with_digit_and_course(_digit int, _course_title text) 
+	returns table (surname text, phone text) as 
+$$
+	declare
+	begin
+		return query select t.surname as surname, t.phone as phone
+						from load l, teacher_course_membership tc, teacher t, course c  
+							where tc.id = l.teacher_course_membership_id and t.code = tc.teacher_code and c.id = tc.course_id and
+							c.title = _course_title and position(cast(_digit as text) in t.phone) != 0;
+	end
+$$ language plpgsql;
+
+
+drop function if exists classes_with_more_courses() cascade;
+create function classes_with_more_courses() 
+	returns table (num int, courses_count bigint) as 
+$$
+	declare
+	begin
+		return query with distinct_pairs as (select distinct l.class_num as num, c.title as title
+						from load l, teacher_course_membership tc, course c  
+							where tc.id = l.teacher_course_membership_id and c.id = tc.course_id),
+						group_by_num as (select d.num as num, count(d.title) as courses_count from distinct_pairs d group by d.num)
+					select g.num as num, g.courses_count as courses_count from group_by_num g
+						 where g.courses_count = (select max(gg.courses_count) from group_by_num gg);
+						
+					
+	end
+$$ language plpgsql;
+
+set search_path to "$user", public;

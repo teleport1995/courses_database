@@ -1,0 +1,74 @@
+drop table if exists class cascade;
+create table class(
+num            int  primary key not null,
+speciality     text             not null,
+department     text             not null,
+students_count int              not null
+);
+
+drop table if exists teacher cascade;
+create table teacher(
+code       int primary key not null,
+name       text      	    not null,
+surname    text             not null,
+patronymic text             not null,
+phone      text                     ,
+experience int              not null default 0
+);
+
+drop table if exists course cascade;
+create table course(
+id    serial primary key,
+title text   not null
+);
+
+drop table if exists teacher_course_membership cascade;
+create table teacher_course_membership(
+id           serial primary key,
+teacher_code int   references teacher,
+course_id    serial references course
+);
+
+drop table if exists employment cascade;
+create table employment(
+type text primary key
+);
+
+drop table if exists tariff cascade;
+create table tariff(
+id              serial  primary key,
+course_id       serial  references course,
+employment_type text    references employment,
+price           numeric not null
+);
+
+drop function if exists course_id_by_teacher_course_membership_id(_id teacher_course_membership.id%type) cascade;
+create function course_id_by_teacher_course_membership_id(_id teacher_course_membership.id%type) returns course.id%type as 
+$$
+	declare
+		ans int;
+	begin
+		select course_id into ans from teacher_course_membership where id = _id;
+		return ans;
+	end
+$$ language plpgsql;
+
+drop function if exists course_id_by_tariff_id(_id tariff.id%type) cascade;
+create function course_id_by_tariff_id(_id tariff.id%type) returns course.id%type as 
+$$
+	declare
+		ans int;
+	begin
+		select course_id into ans from tariff where id = _id;
+		return ans;
+	end
+$$ language plpgsql;
+
+drop table if exists load cascade;
+create table load(
+teacher_course_membership_id serial references teacher_course_membership,
+class_num                    int    references class,
+tariff_id                    serial references tariff,
+hours_count                  int    not null
+check (course_id_by_teacher_course_membership_id(teacher_course_membership_id) = course_id_by_tariff_id(tariff_id))
+);
